@@ -1,7 +1,5 @@
 # NeoStat
-## Neo Feed API(demo)
-
-## Ubuntu 14.04 -- linux
+## Neo Feed API(demo)  Ubuntu 14.04
 
 ## Steps to run project :- 
 

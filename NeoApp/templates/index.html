@@ -1,0 +1,176 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Neo Stats</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="{% static 'NeoApp/css/bootstrap.min.css' %}">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat" rel="stylesheet">
+  <link href="{% static 'NeoApp/css/jquery-ui.css' %}" rel="stylesheet">
+  <link href="{% static 'NeoApp/css/style.css' %}" rel="stylesheet">
+  <script src="{% static 'NeoApp/js/jquery.min.js' %}"></script>
+  <script src="{% static 'NeoApp/js/bootstrap.min.js' %}"></script>
+  <script src="{% static 'NeoApp/js/jquery-ui.js' %}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+</head>
+<body>
+<div id="loading">
+  <img id="cover_load" src="{% static 'NeoApp/images/loader.gif' %}" />
+</div>
+
+<div class="container-fluid bg-1 text-center" style="background-image: url({% static 'NeoApp/images/cover.jpg' %});height: 500px">
+</div>
+
+<div class="container-fluid bg-3 text-center">    
+  <div class="row">
+      <form class="form-inline">
+        <label class="sr-only" for="inlineFormInput">Start Date</label>
+          <div class="input-group mb-2 mr-sm-2 mb-sm-0">
+          <div class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></div>
+          <input type="text" class="form-control" id="from_date" placeholder="Start Date" >
+        </div>
+
+        <label class="sr-only" for="inlineFormInputGroup">End Date</label>
+        <div class="input-group mb-2 mr-sm-2 mb-sm-0">
+          <div class="input-group-addon"><span class="glyphicon glyphicon-calendar"></span></div>
+          <input type="text" class="form-control" id="to_date" placeholder="End Date" disabled>
+        </div>
+        <div class="row">
+         <span id="err" style="display:none;color:red;font-size: 15px;">Please Select Date range</span>
+        </div>
+        <br>
+        <button type="button" class="btn btn-primary" id="submit_button">Submit</button>
+      </form>
+  
+    </div>
+</div>
+<div class="card" tabindex='1' style="position: relative;width: 80%;margin: auto; display: none">
+
+<canvas id="bar-chart" width="800" height="450"></canvas>
+</div>
+<div class="container">
+<div class="row" style="display: flex;
+    flex-wrap: wrap;">
+  <div class="col-md-4">
+    <div class="card mycard">
+      <div class="card-body">
+        <h3 class="card-title">Closest Asteroid</h3>
+        <p class="card-text" id="closest"></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card mycard" >
+      <div class="card-body">
+        <h3 class="card-title">Fastest Asteroid in km/h</h3>
+        <p class="card-text" id="fastest"></p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card mycard">
+      <div class="card-body">
+        <h3 class="card-title">Average Size</h3>
+        <p class="card-text" id="avg_size"></p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer class="container-fluid bg-4">
+   
+</footer>
+
+</body>
+</html>
+
+<script type="text/javascript">
+  $(document).ready(function(){
+    Chart.defaults.global.animation.duration = 3000;
+  })
+  
+
+$("#to_date").datepicker({dateFormat:'d-m-yy'});
+$("#from_date").datepicker({
+    dateFormat:'d-m-yy',
+    onSelect: function () {
+    var toDate = $(this).datepicker('getDate');
+    var toDateToConvert = $(this).datepicker('getDate');
+    var fromDate =  toDateToConvert.setDate(toDateToConvert.getDate()+7)
+    $("#to_date").prop('disabled', false);
+    $("#to_date").datepicker("setDate", toDateToConvert);
+    $('#to_date').datepicker('option', 'minDate', toDate);
+    $('#to_date').datepicker('option', 'maxDate', toDateToConvert);
+    }
+});
+
+var myBarChart = new Chart(document.getElementById("bar-chart"), {
+    type: 'bar',
+    data: {
+      datasets: [
+        {
+        }
+      ]
+    },
+    options: {
+      legend: { display: false },
+      title: {
+        display: true,
+      },
+    }
+});
+
+
+$("#submit_button").click(function(){
+    $("#err").hide()
+    var start_d = $("#from_date").val()
+    var end_d = $("#to_date").val()
+    if(!start_d)
+    {
+      $("#err").show()
+      return;
+    }
+    $("#loading").show()
+    $.ajax({
+      method : "POST",
+      url : "/searchAPI/" ,
+      data : {
+        'start_d' : start_d,
+        'end_d' : end_d
+        },
+        success : function(response){
+          $("#loading").hide()
+          console.log(response)
+          Chart.defaults.global.animation.duration = 3000;
+          Chart.defaults.global.animationSteps = 60;
+
+          $(".card").show()
+          $(".mycard").focus()
+          myBarChart.data.labels = []
+          myBarChart.data.datasets[0].data = []
+          myBarChart.data.labels = response["dates"]
+          myBarChart.data.datasets[0].data = response["values"]
+          myBarChart.data.datasets[0].backgroundColor = ["#3e95cd", "#8e5ea2","#3cba9f","#e8c3b9","#c45850","#8e5ea2","#3e95cd"];
+          myBarChart.options.title.text = "Neo Stats from "+start_d+" to "+end_d
+          myBarChart.update()
+          fastest_ast_name = response["fastest_asteroid"]["name"]
+          fastest_ast_value = response["fastest_asteroid"]["close_approach_data"][0]["relative_velocity"]["kilometers_per_hour"]
+          $("#fastest").html(fastest_ast_name+" : "+fastest_ast_value)
+          closest_ast_name = response["closest_asteroid"]["name"]
+          closest_ast_value = response["fastest_asteroid"]["close_approach_data"][0]["miss_distance"]["kilometers"]
+          $("#closest").html(closest_ast_name+" : "+closest_ast_value)
+          $("#avg_size").html(response["average_size"])
+
+        },
+        error: function(err){
+            $("#loading").hide()
+        }
+    });
+  
+})
+
+
+
+</script>

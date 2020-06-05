@@ -1,6 +1,6 @@
 certifi==2018.8.24
 chardet==3.0.4
-Django==1.10
+Django==1.11.29
 docutils==0.14
 idna==2.7
 requests==2.19.1

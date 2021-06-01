@@ -5,4 +5,4 @@ docutils==0.14
 idna==2.7
 requests==2.19.1
 statistics==1.0.3.5
-urllib3==1.23
+urllib3==1.26.5
